@@ -2,8 +2,7 @@ $fn=80;
 
 hullDiameter = 80;
 wallThickness = 10;
-innerDiameter = hullDiameter - (wallThickness*2);
-innerRadius = innerDiameter/2;
+imprintDepth = 5;
 
 leafLength = 55;
 leafWidth = 32;
@@ -11,8 +10,14 @@ leafBorderWidth = 2;
 
 midribWidth = 3;
 veinWidth = 2;
-numVeinPairs = 16;
 veinAngle = 50;
+
+// Vein count: gap between veins equals vein width
+numVeinPairs = round(leafLength * 0.88 * sin(veinAngle) / (2 * veinWidth) + 1);
+
+// Scale factors for dome shells
+innerScale = 0.8;
+carvingScale = innerScale + imprintDepth / (hullDiameter / 2);
 
 function leafHalfWidth(t) = (leafWidth / 2) * sin(pow(t, 0.7) * 180);
 
@@ -24,19 +29,33 @@ module press(){
 		translate([0,0,-wallThickness]){
 			innerShell();
 		}
-		translate([0,0,-0.01]){
-			leafCutout();
+		leafCarving();
+	}
+}
+
+module leafCarving(){
+	intersection(){
+		// 5mm shell layer just beyond the inner surface
+		translate([0,0,-wallThickness]){
+			carvingShell();
+		}
+		// Leaf shape minus veins and border
+		difference(){
+			linear_extrude(height=hullDiameter)
+				leafOutline();
+			linear_extrude(height=hullDiameter)
+				leafBorder();
+			allVeins();
 		}
 	}
 }
 
-module leafCutout(){
+module carvingShell(){
 	difference(){
-		linear_extrude(height=hullDiameter)
-			leafOutline();
-		linear_extrude(height=hullDiameter)
-			leafBorder();
-		allVeins();
+		scale([carvingScale, carvingScale, carvingScale])
+			outerShell();
+		scale([innerScale, innerScale, innerScale])
+			outerShell();
 	}
 }
 
@@ -68,7 +87,7 @@ module allVeins(){
 	// Side veins
 	for (i = [1:numVeinPairs])
 		let(
-			t = 0.06 + (i - 1) * (0.88 / (numVeinPairs - 1)),
+			t = 0.06 + (i - 1) * (0.88 / max(numVeinPairs - 1, 1)),
 			yPos = -leafLength/2 + t * leafLength,
 			halfW = leafHalfWidth(t),
 			veinLen = halfW / sin(veinAngle) + 2
@@ -90,7 +109,7 @@ module allVeins(){
 }
 
 module innerShell(){
-	scale([0.8,0.8,0.8]){
+	scale([innerScale, innerScale, innerScale]){
 		outerShell();
 	}
 }
