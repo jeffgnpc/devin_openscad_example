@@ -1,17 +1,17 @@
 $fn=80;
 
-pressDiameter = 80;
-pressHeight = 50;
-wallThickness = 3;
-imprintDepth = 8;
+hullDiameter = 80;
+wallThickness = 10;
+innerDiameter = hullDiameter - (wallThickness*2);
+innerRadius = innerDiameter/2;
 
-leafLength = 62;
-leafWidth = 36;
-leafBorderWidth = 1.5;
+leafLength = 55;
+leafWidth = 32;
+leafBorderWidth = 2;
 
-midribWidth = 2.5;
-veinWidth = 1.5;
-numVeinPairs = 18;
+midribWidth = 3;
+veinWidth = 2;
+numVeinPairs = 16;
 veinAngle = 50;
 
 function leafHalfWidth(t) = (leafWidth / 2) * sin(pow(t, 0.7) * 180);
@@ -20,32 +20,23 @@ press();
 
 module press(){
 	difference(){
-		body();
+		outerShell();
+		translate([0,0,-wallThickness]){
+			innerShell();
+		}
 		translate([0,0,-0.01]){
 			leafCutout();
 		}
 	}
 }
 
-module body(){
-	difference(){
-		cylinder(h=pressHeight, d=pressDiameter);
-		translate([0,0,wallThickness+imprintDepth]){
-			cylinder(h=pressHeight, d=pressDiameter-wallThickness*2);
-		}
-	}
-}
-
 module leafCutout(){
-	intersection(){
-		cylinder(h=imprintDepth+0.02, d=pressDiameter);
-		difference(){
-			linear_extrude(height=imprintDepth+0.02)
-				leafOutline();
-			linear_extrude(height=imprintDepth+0.04)
-				leafBorder();
-			allVeins();
-		}
+	difference(){
+		linear_extrude(height=hullDiameter)
+			leafOutline();
+		linear_extrude(height=hullDiameter)
+			leafBorder();
+		allVeins();
 	}
 }
 
@@ -70,7 +61,7 @@ module leafBorder(){
 
 module allVeins(){
 	// Central midrib
-	linear_extrude(height=imprintDepth+0.04)
+	linear_extrude(height=hullDiameter)
 		translate([-midribWidth/2, -leafLength/2])
 			square([midribWidth, leafLength]);
 
@@ -86,14 +77,29 @@ module allVeins(){
 			// Right vein
 			translate([0, yPos, 0])
 				rotate([0, 0, 90 - veinAngle])
-					linear_extrude(height=imprintDepth+0.04)
+					linear_extrude(height=hullDiameter)
 						translate([0, -veinWidth/2])
 							square([veinLen, veinWidth]);
 			// Left vein
 			translate([0, yPos, 0])
 				rotate([0, 0, 90 + veinAngle])
-					linear_extrude(height=imprintDepth+0.04)
+					linear_extrude(height=hullDiameter)
 						translate([0, -veinWidth/2])
 							square([veinLen, veinWidth]);
 		}
+}
+
+module innerShell(){
+	scale([0.8,0.8,0.8]){
+		outerShell();
+	}
+}
+
+module outerShell(){
+	difference(){
+		sphere(hullDiameter/2);
+		translate([0,0,-hullDiameter/4]){
+			cube([hullDiameter,hullDiameter,hullDiameter/2],true);
+		}
+	}
 }
