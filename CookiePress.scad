@@ -9,6 +9,7 @@ leafWidth = 32;
 leafBorderWidth = 2;
 
 midribWidth = 3;
+midribArc = 6;
 veinWidth = 2;
 veinAngle = 50;
 
@@ -20,6 +21,7 @@ innerScale = 0.8;
 carvingScale = innerScale + imprintDepth / (hullDiameter / 2);
 
 function leafHalfWidth(t) = (leafWidth / 2) * sin(pow(t, 0.7) * 180);
+function midribOffset(t) = midribArc * sin(t * 180);
 
 press();
 
@@ -62,10 +64,10 @@ module carvingShell(){
 module leafOutline(){
 	n = 100;
 	points = concat(
-		[for (i = [0:n]) let(t = i/n)
-			[leafHalfWidth(t), -leafLength/2 + t * leafLength]],
-		[for (i = [n:-1:0]) let(t = i/n)
-			[-leafHalfWidth(t), -leafLength/2 + t * leafLength]]
+		[for (i = [0:n]) let(t = i/n, xOff = midribOffset(t))
+			[xOff + leafHalfWidth(t), -leafLength/2 + t * leafLength]],
+		[for (i = [n:-1:0]) let(t = i/n, xOff = midribOffset(t))
+			[xOff - leafHalfWidth(t), -leafLength/2 + t * leafLength]]
 	);
 	polygon(points);
 }
@@ -79,33 +81,44 @@ module leafBorder(){
 }
 
 module allVeins(){
-	// Central midrib
+	// Curved central midrib
 	linear_extrude(height=hullDiameter)
-		translate([-midribWidth/2, -leafLength/2])
-			square([midribWidth, leafLength]);
+		curvedMidrib();
 
-	// Side veins
+	// Side veins originating from curved midrib
 	for (i = [1:numVeinPairs])
 		let(
 			t = 0.06 + (i - 1) * (0.88 / max(numVeinPairs - 1, 1)),
 			yPos = -leafLength/2 + t * leafLength,
+			xOff = midribOffset(t),
 			halfW = leafHalfWidth(t),
 			veinLen = halfW / sin(veinAngle) + 2
 		)
 		if (halfW > 1) {
 			// Right vein
-			translate([0, yPos, 0])
+			translate([xOff, yPos, 0])
 				rotate([0, 0, 90 - veinAngle])
 					linear_extrude(height=hullDiameter)
 						translate([0, -veinWidth/2])
 							square([veinLen, veinWidth]);
 			// Left vein
-			translate([0, yPos, 0])
+			translate([xOff, yPos, 0])
 				rotate([0, 0, 90 + veinAngle])
 					linear_extrude(height=hullDiameter)
 						translate([0, -veinWidth/2])
 							square([veinLen, veinWidth]);
 		}
+}
+
+module curvedMidrib(){
+	n = 100;
+	points = concat(
+		[for (i = [0:n]) let(t = i/n)
+			[midribOffset(t) + midribWidth/2, -leafLength/2 + t * leafLength]],
+		[for (i = [n:-1:0]) let(t = i/n)
+			[midribOffset(t) - midribWidth/2, -leafLength/2 + t * leafLength]]
+	);
+	polygon(points);
 }
 
 module innerShell(){
