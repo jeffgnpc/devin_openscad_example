@@ -28,7 +28,7 @@ press();
 module press(){
 	difference(){
 		outerShell();
-		translate([0,0,-wallThickness]){
+		translate([0,0,-wallThickness+0.1]){
 			innerShell();
 		}
 		leafCarving();
